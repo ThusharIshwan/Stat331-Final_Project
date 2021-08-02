@@ -12,6 +12,8 @@ knitr::opts_chunk$set(echo = TRUE)
 
 \textbf{\large Objective}
 
+testing to see the effects of outliers on the models (through prediction errors)
+
 \textbf{\large Exploratory Data Analysis}
 
 \textbf{\large Methods}
