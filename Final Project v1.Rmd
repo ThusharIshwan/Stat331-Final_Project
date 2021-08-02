@@ -23,8 +23,8 @@ Our procedure is as follows:
 3. Use DFFITS to pick out outliers, using the statistical rule of thumb $|DFFITS_i|>2\times\sqrt\frac{p+1}{n}$, where $p=$ number of covariates indicated by the best model fit and $n=600$.
 4. Create a second training set excluding the outliers found above.
 5. Fit Model 2 on the second training set using the same selection method in step 2.
-6. Measure prediction accuracy with mean squared prediction error on the test set using Model 1
-7. Measure prediction accuracy with mean squared prediction error on the test set using Model 2
+6. Measure prediction accuracy with mean squared prediction error on the test set using Model 1.
+7. Measure prediction accuracy with mean squared prediction error on the test set using Model 2.
 8. Compare the two MSPEs.
 
 We used the following selection methods: forward selection (no interactions and with interactions), backward selection (no interactions and interactions), manual selection and random selection (simulation). \underline{AIC/BIC?}
