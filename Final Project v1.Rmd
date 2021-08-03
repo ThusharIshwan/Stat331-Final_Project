@@ -8,16 +8,16 @@ output: pdf_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-\textbf{\large Summary}
+## Summary
 
 \pagebreak
-\textbf{\large Objective}
+## Objective
 
 testing to see the effects of outliers on the models (through prediction errors)
 
 
 \pagebreak
-\textbf{\large Exploratory Data Analysis}
+## Exploratory Data Analysis
 ```{r echo = FALSE}
 load("C:/Users/deepa/Desktop/Spring 2021/STAT 331/pollution.Rdata")
 train.set <- pollution[1:600,] ##training data
@@ -25,7 +25,7 @@ test.set <- pollution[601:1000,] ##test data
 ```
 
 \pagebreak
-\textbf{\large Methods}
+## Methods
 
 Our procedure is as follows:
 
@@ -122,7 +122,7 @@ mean(M2.res^2)
 ```
 
 \pagebreak
-\textbf{\large Results}
+## Results
 
 \textbf{Stepwise Selection (no interactions)}
 
@@ -155,4 +155,4 @@ For first and fourth fit, we see that the MSPE increases after outliers are remo
 However, for the second and third model, we see the expected decrease in  MSPE when outliers are removed.
 
 \pagebreak
-\textbf{\large Discussion}
+## Discussion
