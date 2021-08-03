@@ -9,11 +9,13 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ## Summary
+The objective of the report is to investigate the extent to which removing outliers from a dataset improves prediction accuracy. This is done through fitting and validating models with a holdout sample to determine prediction error. Then, outliers are removed from the dataset. Finally, the models are fit using the reduced dataset and validated once again to determine their new prediction error. The analysis finishes with a simulation that performs this test on a large number of linear models, producing a histogram of the changes in prediction error as a result of removing outliers. 
 
-\pagebreak
+The report concludes that
+
 ## Objective
 
-testing to see the effects of outliers on the models (through prediction errors)
+To investigate the extent to which removing outliers from a dataset improves prediction accuracy. 
 
 
 \pagebreak
