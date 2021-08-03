@@ -29,7 +29,13 @@ Our procedure is as follows:
 7. Measure prediction accuracy with mean squared prediction error on the test set using Model 2.
 8. Compare the two MSPEs.
 
-We used the following selection methods: forward selection (no interactions and with interactions), backward selection (no interactions and interactions), manual selection and random selection (simulation). \underline{AIC/BIC?}
+We used the following selection methods: forward selection (no interactions and with interactions), backward selection (no interactions and interactions), manual selection and random selection (simulation). 
+
+First, we fit the full model, then removed each covariate with the maximum VIF that satisfy VIF>10 each time we refit the model. This way, we were able to minimize multicollinearity among individual variates. Then, we used each of the mentioned selection methods to generate the best fitting model based on AIC, with data set being the training set. DFFITS are the scaled differences between the fitted value for $y_i$ and what we would have gotten if we hadn't observed $y_i$. A large value of DFFIT suggests the fitted values change substantially.
+
+We chose DFFITS as our standard to pick out outliers because it incorporates information about both y-outliers and x-outliers. Furthermore, we do not need to refit the model for each $y_i$. Although both DFFITS and Cook's Distance can be generated using functions built in in R, DFFITS is more favorable over Cook's Distance because its statistical "rule of thumb" is more straightforward and yielded more reasonable outliers in our procedure.
+
+For the full model in our selection methods, we considered both including the interactions and excluding the interactions to examine whether important interactions affect our results significantly.
 
 \textbf{Forward Selection}
 
