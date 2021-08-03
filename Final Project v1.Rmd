@@ -1,6 +1,6 @@
 ---
 title: "STAT 331 Final Project"
-author: Deep Antala, Thushar Ishwanthlal, Vanessa Li, Harry Qu
+author: Deep Antala, Thushar Ishwanthlal, Vanessa Li, Harry Qu 
 output: pdf_document
 ---
 
@@ -56,6 +56,7 @@ Minimal model and full model is used in selection methods as initial and thresho
 
 \pagebreak
 \textbf{Stepwise Selection}
+
 We will do stepwise selection with the minimal and full models with training dataset. The new dataset will not include high influential points (outliers).
 Below, there is a plot that highlights high influential points in red.
 ```{r, echo = FALSE, out.width="60%", fig.align = 'center'}
