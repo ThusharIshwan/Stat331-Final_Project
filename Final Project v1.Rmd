@@ -1,6 +1,6 @@
 ---
 title: "STAT 331 Final Project"
-author: Deep Antala, Thushar Ishwan, Vanessa Li, Harry Qu 
+author: "Deep Antala, Thushar Ishwan, Vanessa Li, Harry Qu"
 output: pdf_document
 ---
 
@@ -10,10 +10,18 @@ knitr::opts_chunk$set(echo = TRUE)
 
 \textbf{\large Summary}
 
+\pagebreak
 \textbf{\large Objective}
 
+\pagebreak
 \textbf{\large Exploratory Data Analysis}
+```{r echo = FALSE}
+load("C:/Users/deepa/Desktop/Spring 2021/STAT 331/pollution.Rdata")
+train.set <- pollution[1:600,] ##training data
+test.set <- pollution[601:1000,] ##test data
+```
 
+\pagebreak
 \textbf{\large Methods}
 
 Our procedure is as follows:
@@ -23,14 +31,124 @@ Our procedure is as follows:
 3. Use DFFITS to pick out outliers, using the statistical rule of thumb $|DFFITS_i|>2\times\sqrt\frac{p+1}{n}$, where $p=$ number of covariates indicated by the best model fit and $n=600$.
 4. Create a second training set excluding the outliers found above.
 5. Fit Model 2 on the second training set using the same selection method in step 2.
-6. Measure prediction accuracy with mean squared prediction error on the test set using Model 1
-7. Measure prediction accuracy with mean squared prediction error on the test set using Model 2
+6. Measure prediction accuracy with mean squared prediction error on the test set using Model 1.
+7. Measure prediction accuracy with mean squared prediction error on the test set using Model 2.
 8. Compare the two MSPEs.
 
-We used the following selection methods: forward selection (no interactions and with interactions), backward selection (no interactions and interactions), manual selection and random selection (simulation). \underline{AIC/BIC?}
+We used the following selection methods: forward selection (no interactions and with interactions), backward selection (no interactions and interactions), manual selection and random selection (simulation). 
 
-\textbf{Forward Selection}
+First, we fit the full model, then removed each covariate with the maximum VIF that satisfy VIF>10 each time we refit the model. This way, we were able to minimize multicollinearity among individual variates. Then, we used each of the mentioned selection methods to generate the best fitting model based on AIC, with data set being the training set. DFFITS are the scaled differences between the fitted value for $y_i$ and what we would have gotten if we hadn't observed $y_i$. A large value of DFFIT suggests the fitted values change substantially.
 
+We chose DFFITS as our standard to pick out outliers because it incorporates information about both y-outliers and x-outliers. Furthermore, we do not need to refit the model for each $y_i$. Although both DFFITS and Cook's Distance can be generated using functions built in in R, DFFITS is more favorable over Cook's Distance because its statistical "rule of thumb" is more straightforward and yielded more reasonable outliers in our procedure.
+
+For the full model in our selection methods, we considered both including the interactions and excluding the interactions to examine whether important interactions affect our results significantly.\
+
+
+### Analysis
+Minimal Model: lm(e3_bw ~ 1, data = train.set)
+
+Full Model: lm(e3_bw ~ ., data = train.set)\
+
+Minimal model and full model is used in selection methods as initial and threshold model repectively.
+
+\pagebreak
+\textbf{Stepwise Selection}
+We will do stepwise selection with the minimal and full models with training dataset. The new dataset will not include high influential points (outliers).
+Below, there is a plot that highlights high influential points in red.
+```{r, echo = FALSE, out.width="60%", fig.align = 'center'}
+M0 <- lm(e3_bw ~ 1, data = train.set)
+Mfull <- lm(e3_bw ~ ., data = train.set)
+Mstep <- step(object = M0,
+              scope = list(lower = M0, upper = Mfull), 
+              direction = "both", trace = 0)
+M <- Mstep
+n <- nobs(M) ##600 observations
+p <- length(M$coef)-1 ##21
+dffits_m <- dffits(M) ##using DFFITS 
+
+
+## plot DFFITS
+plot(dffits_m,ylab = "DFFITS", main = "DFFITS plot of First model") 
+abline(h=2*sqrt((p+1)/n),lty=2)  ## add thresholds
+abline(h=-2*sqrt((p+1)/n),lty=2)
+## highlight influential points
+dff_ind <- which(abs(dffits_m)>2*sqrt((p+1)/n))
+points(dffits_m[dff_ind]~dff_ind,col="red",pch=19) ## add red points
+text(y=dffits_m[dff_ind],x=dff_ind, labels=dff_ind, pos=2) ## label high influence points
+
+```
+
+Now, we will do stepwise selection with the same minimal and full models but with new dataset. The new dataset will be the training dataset but it will not include high influential points (outliers).
+Below, there is a plot with removed outliers.
+
+```{r, echo = FALSE, out.width="60%", fig.align = 'center'}
+#new dataset after removing outliers 
+new.set <- train.set[-dff_ind,]
+
+#fitting the same model with new dataset
+M0 <- lm(e3_bw ~ 1, data = new.set)
+Mfull <- lm(e3_bw ~ ., data = new.set)
+Mstep.new <- step(object = M0,
+              scope = list(lower = M0, upper = Mfull), 
+              direction = "both", trace = 0)
+M2 <- Mstep.new
+n <- nobs(M2) ##600 observations
+p <- length(M2$coef)-1 ##20
+dffits_m <- dffits(M2)
+
+## plot DFFITS with new data
+plot(dffits_m,ylab = "DFFITS",  main = "DFFITS plot without outliers from First model") 
+abline(h=2*sqrt((p+1)/n),lty=2)  ## add thresholds
+abline(h=-2*sqrt((p+1)/n),lty=2)
+
+
+M1.res <- test.set$e3_bw - # test observations
+  predict(M, newdata = test.set) # prediction with training data
+M2.res <- test.set$e3_bw - predict(M2, newdata = test.set)
+
+```
+
+```{r echo = FALSE, eval = FALSE}
+#MSPE for First stepwise selected model
+mean(M1.res^2)
+
+#MSPE for no outliers stepwise selected model
+mean(M2.res^2)
+
+```
+
+\pagebreak
 \textbf{\large Results}
 
+\textbf{Stepwise Selection (no interactions)}
+
+There were 38 high influential points for first model (where the dataset was training data).
+
+1. MSPE for First stepwise selected model: 189595.1.
+2. MSPE for no outliers stepwise selected model: 185221.9.
+
+This shows that when the outliers were removed, the MSPE decreases. Also, we see that the data is more scattered in the second plot (after removing outliers). This is what we wanted.\
+
+\textbf{Manual Selection (with interactions)}
+
+1. Fit: Chemicals + others + interactions
+    + MSPE for First model: 224859.6.
+    + MSPE for no outlier model: 279121.2.
+    
+2. Fit: Outdoors + others + interactions
+    + MSPE for First model: 189053.6.
+    + MSPE for no outlier model: 188276.7.
+    
+3. Fit: Lifestyles + others + interactions
+    + MSPE for First model: 199510.4.
+    + MSPE for no outlier model:  198149.
+    
+4. Fit: Chemicals + interactions 
+    + MSPE for First model: 317900.4.
+    + MSPE for no outlier model: 335895.2.
+
+For first and fourth fit, we see that the MSPE increases after outliers are removed. This is something unusual. This shows that the interactions between chemicals are not much related to each other and this makes sense.
+However, for the second and third model, we see the expected decrease in  MSPE when outliers are removed.
+
+\pagebreak
 \textbf{\large Discussion}
