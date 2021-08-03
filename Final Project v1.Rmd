@@ -1,6 +1,6 @@
 ---
 title: "STAT 331 Final Project"
-author: "Deep Antala, Thushar Ishwan, Vanessa Li, Harry Qu"
+author: Deep Antala, Thushar Ishwanthlal, Vanessa Li, Harry Qu
 output: pdf_document
 ---
 
@@ -12,6 +12,9 @@ knitr::opts_chunk$set(echo = TRUE)
 
 \pagebreak
 \textbf{\large Objective}
+
+testing to see the effects of outliers on the models (through prediction errors)
+
 
 \pagebreak
 \textbf{\large Exploratory Data Analysis}
