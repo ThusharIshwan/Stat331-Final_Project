@@ -156,22 +156,4 @@ tot_domain134 = unique(rbind(low_col_domain134, domain134, high_col_domain134))
 tot_domain234 = unique(rbind(low_col_domain234, domain234, high_col_domain234))
 tot_domain1234 = unique(rbind(low_col_domain1234, domain1234, high_col_domain1234))
 
-for (r in c(tot_domain1$mspe_difference, 
-            tot_domain2$mspe_difference, 
-            tot_domain3$mspe_difference, 
-            tot_domain4$mspe_difference, 
-            tot_domain12$mspe_difference, 
-            tot_domain13$mspe_difference, 
-            tot_domain14$mspe_difference, 
-            tot_domain23$mspe_difference, 
-            tot_domain24$mspe_difference, 
-            tot_domain34$mspe_difference, 
-            tot_domain123$mspe_difference, 
-            tot_domain124$mspe_difference, 
-            tot_domain134$mspe_difference, 
-            tot_domain234$mspe_difference, 
-            tot_domain1234$mspe_difference)){
-  hist(r)
-  
-}
 
