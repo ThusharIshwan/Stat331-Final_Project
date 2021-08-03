@@ -1,6 +1,6 @@
 ---
 title: "STAT 331 Final Project"
-author: Deep Antala, Thushar Ishwan, Vanessa Li, Harry Qu 
+author: Deep Antala, Thushar Ishwanthlal, Vanessa Li, Harry Qu 
 output: pdf_document
 ---
 
