@@ -7,11 +7,15 @@ load("pollution.Rdata")
 y = pollution$e3_bw
 X = pollution[!names(pollution) %in% c("e3_bw")]
 
+
+# Splitting the columns into four domains
 pollution_chemicals <- pollution[c(18:27,31:70)] # chemical domain
 pollution_outdoors <- pollution[c(2:5,28:30,71:73)] # outdoor exposures domain
 pollution_lifestyles <- pollution[c(6:17)] # lifestyles domain
 pollution_others <- pollution[c(74:80)] # covariates domain
 
+
+# A function for finding the DFFits outliers at a specific tolerance. Ploting the values is an included option.
 Get_DFFITS_Outliers <- function(M, tol = 2, to_plot = FALSE, ylab = "DFFITS")
 {
   D = dffits(M)
@@ -37,35 +41,34 @@ Get_DFFITS_Outliers <- function(M, tol = 2, to_plot = FALSE, ylab = "DFFITS")
 Simulation_Instance <- function(y_train, X_train, y_test, X_test, cols, plot_outliers = FALSE)
 {
   
-  M = lm(y_train~.,data = X_train[cols])
+  M = lm(y_train~.,data = X_train[cols]) # Create the model using the entire training set
   M_Outliers = c()
   
-  M_Outliers = Get_DFFITS_Outliers(M, to_plot = plot_outliers)
+  M_Outliers = Get_DFFITS_Outliers(M, to_plot = plot_outliers) # Identify the outliers 
   
   
   X_train_rm_out = X_train[-M_Outliers,cols]
   y_train_rm_out = y_train[-M_Outliers]
   
-  M_Outliers_Removed = lm(y_train_rm_out~.,data =X_train_rm_out)
+  M_Outliers_Removed = lm(y_train_rm_out~.,data =X_train_rm_out) # Remove the outliers from the training set and remake the model
   
   mspe_1 = MSPE(y_test, X_test, M)
-  mspe_2 = MSPE(y_test, X_test, M_Outliers_Removed)
+  mspe_2 = MSPE(y_test, X_test, M_Outliers_Removed) #Compare the MSPEs of the 2 models
   
-  return(list(length(cols),length(M_Outliers),mspe_1, mspe_2, mspe_1-mspe_2))
+  return(list(length(cols),length(M_Outliers),mspe_1, mspe_2, mspe_1-mspe_2)) # Return information about the instance
   
 }
 
 # Full simulation:
-
 Run_Simulation <- function(ITERS, y, X, CV = 1, tts = 0.6, prop0 = 1, prop1 = 1)
 {
-  COLS = length(X)
+  COLS = length(X) # number of columns
   table = data.frame(features = rep(NA,ITERS*CV),num_outliers = rep(NA,ITERS*CV),mspe_original = rep(NA,ITERS*CV),
                      mspe_no_outliers = rep(NA,ITERS*CV),mspe_difference = rep(NA,ITERS*CV))
   
   for (cv in 1:CV)
   {
-    sampler = 1:(length(y) * tts) + (((length(y)*(1-tts) * (cv - 1)) / (CV - 1)))
+    sampler = 1:(length(y) * tts) + (((length(y)*(1-tts) * (cv - 1)) / (CV - 1))) # different training splits used for cross-validation
     
     y_train = y[sampler]
     X_train = X[sampler,]
@@ -107,6 +110,7 @@ Run_Simulation <- function(ITERS, y, X, CV = 1, tts = 0.6, prop0 = 1, prop1 = 1)
   return(table)
 }
 
+# Draws a histogram and the ascosiated normal distribution
 Hist_Norm <- function(d, breaks = 20, x_lab = "x_lab", y_lab = "y_lab", main = "main"){
   full = d[!is.na(d)]
   print(min(full))
@@ -121,6 +125,8 @@ Hist_Norm <- function(d, breaks = 20, x_lab = "x_lab", y_lab = "y_lab", main = "
 
 # Set the seed for ease of replication:
 set.seed(20776408)
+
+# Models with equal chance of including or excluding columns, across the different domains
 domain1 = Run_Simulation(1000,y,pollution_chemicals, CV = 5)
 domain2 = Run_Simulation(1000,y,pollution_outdoors, CV = 5)
 domain3 = Run_Simulation(1000,y,pollution_lifestyles, CV = 5)
@@ -137,6 +143,7 @@ domain134 = Run_Simulation(1000,y,cbind(pollution_chemicals, pollution_lifestyle
 domain234 = Run_Simulation(1000,y,cbind(pollution_outdoors, pollution_lifestyles, pollution_others), CV = 5)
 domain1234 = Run_Simulation(1000,y,cbind(pollution_chemicals, pollution_outdoors, pollution_lifestyles, pollution_others), CV = 5)
 
+# Models with a higher chance of excluding columns, across the different domains
 low_col_domain1 = Run_Simulation(1000,y,pollution_chemicals, CV = 5, prop0 = 2)
 low_col_domain2 = Run_Simulation(1000,y,pollution_outdoors, CV = 5, prop0 = 2)
 low_col_domain3 = Run_Simulation(1000,y,pollution_lifestyles, CV = 5, prop0 = 2)
@@ -153,7 +160,7 @@ low_col_domain134 = Run_Simulation(1000,y,cbind(pollution_chemicals, pollution_l
 low_col_domain234 = Run_Simulation(1000,y,cbind(pollution_outdoors, pollution_lifestyles, pollution_others), CV = 5, prop0 = 2)
 low_col_domain1234 = Run_Simulation(1000,y,cbind(pollution_chemicals, pollution_outdoors, pollution_lifestyles, pollution_others), CV = 5, prop0 = 2)
 
-
+# Models with a higher chance of including columns, across the different domains
 high_col_domain1 = Run_Simulation(1000,y,pollution_chemicals, CV = 5, prop1 = 2)
 high_col_domain2 = Run_Simulation(1000,y,pollution_outdoors, CV = 5, prop1 = 2)
 high_col_domain3 = Run_Simulation(1000,y,pollution_lifestyles, CV = 5, prop1 = 2)
@@ -171,7 +178,7 @@ high_col_domain234 = Run_Simulation(1000,y,cbind(pollution_outdoors, pollution_l
 high_col_domain1234 = Run_Simulation(1000,y,cbind(pollution_chemicals, pollution_outdoors, pollution_lifestyles, pollution_others), CV = 5, prop1 = 2)
 
 
-
+#combining the observations across the column inclusion probabilities
 tot_domain1 = unique(rbind(low_col_domain1, domain1, high_col_domain1))
 tot_domain2 = unique(rbind(low_col_domain2, domain2, high_col_domain2))
 tot_domain3 = unique(rbind(low_col_domain3, domain3, high_col_domain3))
@@ -188,6 +195,9 @@ tot_domain134 = unique(rbind(low_col_domain134, domain134, high_col_domain134))
 tot_domain234 = unique(rbind(low_col_domain234, domain234, high_col_domain234))
 tot_domain1234 = unique(rbind(low_col_domain1234, domain1234, high_col_domain1234))
 
+
+
+#Calcluating mean and standard deviation of the MSPE differences observed above, and plotting the respective histograms.
 Hist_Norm(tot_domain1234$mspe_difference, xlab = "Original Model MSPE minus Outlier Removed Model MSPE", main = "MSPE Difference in models across all domains")
 mean(tot_domain1234$mspe_difference, na.rm = TRUE)
 sd(tot_domain1234$mspe_difference, na.rm = TRUE)
