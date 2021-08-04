@@ -87,6 +87,18 @@ Run_Simulation <- function(ITERS, y, X, CV = 1, tts = 0.6, prop0 = 1, prop1 = 1)
   return(table)
 }
 
+Hist_Norm <- function(d, breaks = 20, x_lab = "x_lab", y_lab = "y_lab", main = "main"){
+  full = d[!is.na(d)]
+  print(min(full))
+  h <- hist(full, breaks = breaks, x_lab = "x_lab", y_lab = "y_lab", main = "main")
+  xfit <- seq(min(full), max(full), length = 40) 
+  yfit <- dnorm(xfit, mean = mean(full), sd = sd(full))
+  yfit <- yfit * diff(h$mids[1:2]) * length(full)
+  lines(xfit, yfit, col = "black", lwd = 2)
+  
+}
+
+
 # Set the seed for ease of replication:
 set.seed(20776408)
 domain1 = Run_Simulation(1000,y,pollution_chemicals, CV = 5)
@@ -156,4 +168,19 @@ tot_domain134 = unique(rbind(low_col_domain134, domain134, high_col_domain134))
 tot_domain234 = unique(rbind(low_col_domain234, domain234, high_col_domain234))
 tot_domain1234 = unique(rbind(low_col_domain1234, domain1234, high_col_domain1234))
 
+Hist_Norm(tot_domain1234$mspe_difference, xlab = "Original Model MSPE minus Outlier Removed Model MSPE", main = "MSPE Difference in models across all domains")
+mean(tot_domain1234$mspe_difference, na.rm = TRUE)
+sd(tot_domain1234$mspe_difference, na.rm = TRUE)
 
+Hist_Norm(tot_domain1$mspe_difference, xlab = "Original Model MSPE minus Outlier Removed Model MSPE", main = "MSPE Difference in models within the Chemicals Domain")
+mean(tot_domain1$mspe_difference, na.rm = TRUE)
+sd(tot_domain1$mspe_difference, na.rm = TRUE)
+Hist_Norm(tot_domain2$mspe_difference, xlab = "Original Model MSPE minus Outlier Removed Model MSPE", main = "MSPE Difference in models Within the Outdoors Domain")
+mean(tot_domain2$mspe_difference, na.rm = TRUE)
+sd(tot_domain2$mspe_difference, na.rm = TRUE)
+Hist_Norm(tot_domain3$mspe_difference, xlab = "Original Model MSPE minus Outlier Removed Model MSPE", main = "MSPE Difference in models within the Lifestyle Domain")
+mean(tot_domain3$mspe_difference, na.rm = TRUE)
+sd(tot_domain3$mspe_difference, na.rm = TRUE)
+Hist_Norm(tot_domain4$mspe_difference, xlab = "Original Model MSPE minus Outlier Removed Model MSPE", main = "MSPE Difference in models Within the Misc. Domain")
+mean(tot_domain4$mspe_difference, na.rm = TRUE)
+sd(tot_domain4$mspe_difference, na.rm = TRUE)
