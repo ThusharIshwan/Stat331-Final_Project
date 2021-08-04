@@ -1,0 +1,591 @@
+---
+title: "STAT 331 Final Project"
+author: "Deep Antala, Thushar Ishwanthlal, Vanessa Li, Harry Qu"
+output:
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(tidy=TRUE, tidy.opts=list(width.cutoff=60), echo = TRUE)
+```
+
+## Appendix
+
+```{r}
+load("C:/Users/deepa/Desktop/Spring 2021/STAT 331/pollution.Rdata")
+# splitting training set and test set
+training_set <- pollution [c(1:600),]
+test_set <- pollution [-c(1:600),]
+```
+
+```{r}
+# ensuring numerical factor levels are treated as factors
+pollution$e3_alcpreg_yn_None <- as.factor(pollution$e3_alcpreg_yn_None)
+pollution$h_folic_t1_None <- as.factor(pollution$h_folic_t1_None)
+pollution$e3_yearbir_None <- as.factor(pollution$e3_yearbir_None)
+pollution$h_edumc_None <- as.factor(pollution$h_edumc_None)
+
+# summary statistics and plots of birthweight
+mean(pollution$e3_bw); var(pollution$e3_bw)
+```
+
+```{r eval = FALSE}
+hist(pollution$e3_bw, main="Histogram of birthweight",xlab="Birthweight", breaks=20)
+boxplot(pollution$e3_bw, main="Boxplot of birthweight", xlab="Birthweight", horizontal = TRUE)
+```
+
+```{r}
+# creating a numeric-only version of the dataframe
+pollution.numeric <- pollution
+for(i in 1:ncol(pollution.numeric)) { 
+  pollution.numeric[ , i] <- as.numeric(pollution.numeric[ , i])
+}
+
+# creating a correlogram
+data_cols <- pollution.numeric[, c(1:80)]
+data_cor <- cor(data_cols)
+```
+
+```{r eval = FALSE}
+heatmap(x=data_cor)
+```
+
+```{r}
+# fitting an initial model
+M1 <- lm(e3_bw ~.,data=pollution)
+res1 <- resid(M1) # raw residuals
+stud1 <- res1/(sigma(M1)*sqrt(1-hatvalues(M1))) # studentized residuals
+```
+
+```{r eval = FALSE}
+# plot distribution of studentized residuals
+hist(stud1,breaks=12,
+     probability=TRUE,xlim=c(-4,4),
+     xlab="Studentized Residuals",
+     main="Distribution of Residuals")
+grid <- seq(-3.5,3.5,by=0.05)
+lines(x=grid,y=dnorm(grid),col="blue") # add N(0,1) pdf
+
+# qqplot of studentized residuals
+qqnorm(stud1)
+abline(0,1) # add 45 degree line
+
+# partial regression (added variable plots)
+avPlots(M1)
+
+# plot of studentized residuals vs fitted values
+plot(stud1~fitted(M1),
+     xlab="Fitted Vals",
+     ylab="Studentized Residuals",
+     main="Residuals vs Fitted")
+
+## standard residual plots
+plot(M1)
+```
+
+
+
+
+```{r}
+# forward selection based on AIC
+M_base <- lm(e3_bw ~ 1, training_set)
+M_full <- lm(e3_bw ~ ., training_set)
+M_forward <- step(object=M_base, scope=list(lower=M_base,upper=M_full),
+                  direction="forward", trace=0)
+summary(M_forward)
+D <- cooks.distance(M_forward)
+```
+
+```{r eval = FALSE}
+plot(M_forward, which=4)
+```
+
+```{r}
+# outliers defined by first rule of thumb (compare to F value)
+n <- nobs(M_forward)
+p <- length(M_forward$coef)-1
+inf_ind <- which(pf(D,p+1,n-p-1,lower.tail=TRUE)>0.1) # from lec20 code
+```
+
+```{r eval = FALSE}
+plot(D,ylab="Cook's Distance")
+points(D[inf_ind]~inf_ind,col="red",pch=19) ## add red points
+text(y=D[inf_ind],x=inf_ind, labels=inf_ind, pos=4) ## label high influence points
+```
+
+```{r}
+# no outliers using cook's distance
+
+# DFFITS
+dffits_fwd <- dffits(M_forward) 
+```
+
+```{r eval = FALSE}
+## plot DFFITS
+plot(dffits_fwd,ylab="DFFITS") 
+abline(h=2*sqrt((p+1)/n),lty=2)  ## add thresholds
+abline(h=-2*sqrt((p+1)/n),lty=2)
+```
+
+```{r}
+## highlight influential points
+dff_ind_fwd <- which(abs(dffits_fwd)>2*sqrt((p+1)/n)) # 20 outliers
+```
+
+```{r eval = FALSE}
+points(dffits_fwd[dff_ind_fwd]~dff_ind_fwd,col="red",pch=19) ## add red points
+text(y=dffits_fwd[dff_ind_fwd],x=dff_ind_fwd, labels=dff_ind_fwd, pos=2) ## label high influence points
+```
+
+```{r}
+# create training data removing outliers found using DFFITS above
+training_set_no_outlier_fwd <- training_set[-dff_ind_fwd,]
+
+# fit model on this training set
+M_base_no_outlier <- lm(e3_bw ~ 1, training_set_no_outlier_fwd)
+M_full_no_outlier <- lm(e3_bw ~ ., training_set_no_outlier_fwd)
+M_forward_no_outlier <- step(object=M_base_no_outlier,
+                             scope=list(lower=M_base_no_outlier,
+                                        upper=M_full_no_outlier),
+                             direction="forward", trace=0)
+summary(M_forward_no_outlier)
+# we use MSPE to assess the prediction accuracy of of the models
+MSPE <- function(yi_new, yi_new_hat){
+  mean((yi_new - yi_new_hat)^2)
+  }
+yi_new <- test_set$e3_bw
+
+# MSPE on model 1
+M1.pred <- predict(M_forward, newdata = test_set[,-1])
+MSPE_M1 <- MSPE(yi_new,M1.pred)
+MSPE_M1
+
+# MSPE on model 2
+M2.pred <- predict(M_forward_no_outlier, newdata = test_set[,-1])
+MSPE_M2 <- MSPE(yi_new,M2.pred)
+MSPE_M2
+
+# MSPE using second model lower than that using first model
+```
+
+
+
+
+```{r}
+# backward selection based on AIC
+M_base <- lm(e3_bw ~ 1, training_set)
+M_full <- lm(e3_bw ~ ., training_set)
+M_backward <- step(object=M_full, scope=list(lower=M_base,upper=M_full),
+                  direction="backward", trace=0)
+summary(M_backward)
+D_b <- cooks.distance(M_backward)
+```
+
+```{r eval = FALSE}
+plot(M_backward, which=4)
+```
+
+```{r}
+# outliers defined by first rule of thumb (compare to F value)
+n <- nobs(M_backward)
+p <- length(M_backward$coef)-1
+inf_ind <- which(pf(D_b,p+1,n-p-1,lower.tail=TRUE)>0.1) # from lec20 code
+```
+
+```{r eval = FALSE}
+plot(D_b,ylab="Cook's Distance")
+points(D_b[inf_ind]~inf_ind,col="red",pch=19) ## add red points
+text(y=D_b[inf_ind],x=inf_ind, labels=inf_ind, pos=4) ## label high influence points
+```
+
+```{r}
+# no outliers using cook's distance
+
+
+# DFFITS
+dffits_back <- dffits(M_backward) 
+```
+
+```{r eval = FALSE}
+## plot DFFITS
+plot(dffits_back,ylab="DFFITS") 
+abline(h=2*sqrt((p+1)/n),lty=2)  ## add thresholds
+abline(h=-2*sqrt((p+1)/n),lty=2)
+```
+
+```{r}
+## highlight influential points
+dff_ind_back <- which(abs(dffits_back)>2*sqrt((p+1)/n)) # 35 outliers
+```
+
+```{r eval = FALSE}
+points(dffits_back[dff_ind_back]~dff_ind_back,col="red",pch=19) ## add red points
+text(y=dffits_back[dff_ind_back],x=dff_ind_back, labels=dff_ind_back, pos=2) ## label high influence points
+```
+
+
+
+```{r}
+# create training data removing outliers found using DFFITS above
+training_set_no_outlier_back <- training_set[-dff_ind_back,]
+
+# fit model on this training set
+M_base_no_outlier <- lm(e3_bw ~ 1, training_set_no_outlier_back)
+M_full_no_outlier <- lm(e3_bw ~ ., training_set_no_outlier_back)
+M_backward_no_outlier <- step(object=M_full_no_outlier,
+                             scope=list(lower=M_base_no_outlier,
+                                        upper=M_full_no_outlier),
+                             direction="backward", trace=0)
+summary(M_backward_no_outlier)
+# we use MSPE to assess the prediction accuracy of of the models
+MSPE <- function(yi_new, yi_new_hat){
+  mean((yi_new - yi_new_hat)^2)
+  }
+yi_new <- test_set$e3_bw
+
+# MSPE on model 1
+M1.pred <- predict(M_backward, newdata = test_set[,-1])
+MSPE_M1 <- MSPE(yi_new,M1.pred)
+MSPE_M1
+
+# MSPE on model 2
+M2.pred <- predict(M_backward_no_outlier, newdata = test_set[,-1])
+MSPE_M2 <- MSPE(yi_new,M2.pred)
+MSPE_M2
+
+# MSPE using second model slightly higher than that using first model
+```
+
+
+
+
+```{r}
+M0 <- lm(e3_bw ~ 1, data = training_set)
+Mfull <- lm(e3_bw ~ ., data = training_set)
+Mstep <- step(object = M0,
+              scope = list(lower = M0, upper = Mfull), 
+              direction = "both", trace = 0)
+summary(Mstep)
+M <- Mstep
+n <- nobs(M) ##600 observations
+p <- length(M$coef)-1 ##21
+dffits_m <- dffits(M) ##using DFFITS 
+```
+
+```{r eval = FALSE}
+## plot DFFITS
+plot(dffits_m,ylab = "DFFITS", main = "DFFITS plot of First model") 
+abline(h=2*sqrt((p+1)/n),lty=2)  ## add thresholds
+abline(h=-2*sqrt((p+1)/n),lty=2)
+```
+
+```{r}
+## highlight influential points
+dff_ind <- which(abs(dffits_m)>2*sqrt((p+1)/n))
+```
+
+```{r eval = FALSE}
+points(dffits_m[dff_ind]~dff_ind,col="red",pch=19) ## add red points
+text(y=dffits_m[dff_ind],x=dff_ind, labels=dff_ind, pos=2) ## label high influence points
+```
+
+```{r}
+#new dataset after removing outliers 
+new.set <- training_set[-dff_ind,]
+
+#fitting the same model with new dataset
+M0 <- lm(e3_bw ~ 1, data = new.set)
+Mfull <- lm(e3_bw ~ ., data = new.set)
+Mstep.new <- step(object = M0,
+              scope = list(lower = M0, upper = Mfull), 
+              direction = "both", trace = 0)
+summary(Mstep.new)
+M2 <- Mstep.new
+n <- nobs(M2) ##600 observations
+p <- length(M2$coef)-1 ##20
+dffits_m <- dffits(M2)
+```
+
+```{r}
+
+M1.res <- test_set$e3_bw - # test observations
+  predict(M, newdata = test_set) # prediction with training data
+M2.res <- test_set$e3_bw - predict(M2, newdata = test_set)
+
+#MSPE for First stepwise selected model
+mean(M1.res^2)
+
+#MSPE for no outliers stepwise selected model
+mean(M2.res^2)
+
+```
+
+```{r eval = FALSE}
+y = pollution$e3_bw
+X = pollution[!names(pollution) %in% c("e3_bw")]
+
+
+# Splitting the columns into four domains
+pollution_chemicals <- pollution[c(18:27,31:70)] # chemical domain
+pollution_outdoors <- pollution[c(2:5,28:30,71:73)] # outdoor exposures domain
+pollution_lifestyles <- pollution[c(6:17)] # lifestyles domain
+pollution_others <- pollution[c(74:80)] # covariates domain
+
+
+# A function for finding the DFFits outliers at a specific tolerance. Ploting the values is 
+# an included option.
+Get_DFFITS_Outliers <- function(M, tol = 2, to_plot = FALSE, ylab = "DFFITS")
+{
+  D = dffits(M)
+  n = nobs(M)
+  p <- length(M$coef)-1
+  Out_Indices = which(abs(D)>tol*sqrt((p+1)/n))
+  
+  if (to_plot)
+  {
+    plot (D, ylab = ylab)
+    abline(h=tol*sqrt((p+1)/n),lty=2)
+    abline(h=-tol*sqrt((p+1)/n),lty=2)
+    
+    points(D[Out_Indices]~Out_Indices,col="red",pch=19)
+    text(y=D[Out_Indices],x=Out_Indices, labels=Out_Indices, pos=2)
+    
+  }
+  
+  return(as.vector(Out_Indices))
+}
+
+# One instance of the simulation
+Simulation_Instance <- function(y_train, X_train, y_test, X_test, cols, plot_outliers = FALSE)
+{
+  
+  M = lm(y_train~.,data = X_train[cols]) # Create the model using the entire training set
+  M_Outliers = c()
+  
+  M_Outliers = Get_DFFITS_Outliers(M, to_plot = plot_outliers) # Identify the outliers 
+  
+  
+  X_train_rm_out = X_train[-M_Outliers,cols]
+  y_train_rm_out = y_train[-M_Outliers]
+  
+  # Remove the outliers from the training set and remake the model
+  M_Outliers_Removed = lm(y_train_rm_out~.,data =X_train_rm_out)
+  
+  mspe_1 = MSPE(y_test, X_test, M)
+  mspe_2 = MSPE(y_test, X_test, M_Outliers_Removed) #Compare the MSPEs of the 2 models
+  
+  # Return information about the instance
+  return(list(length(cols),length(M_Outliers),mspe_1, mspe_2, mspe_1-mspe_2))
+  
+}
+
+# Full simulation:
+Run_Simulation <- function(ITERS, y, X, CV = 1, tts = 0.6, prop0 = 1, prop1 = 1)
+{
+  COLS = length(X) # number of columns
+  table = data.frame(features = rep(NA,ITERS*CV),num_outliers = rep(NA,ITERS*CV),
+                     mspe_original = rep(NA,ITERS*CV),mspe_no_outliers = rep(NA,ITERS*CV),
+                     mspe_difference = rep(NA,ITERS*CV))
+  
+  for (cv in 1:CV)
+  {
+    # different training splits used for cross-validation
+    sampler = 1:(length(y) * tts) + (((length(y)*(1-tts) * (cv - 1)) / (CV - 1)))
+    
+    y_train = y[sampler]
+    X_train = X[sampler,]
+    y_test = y[-sampler]
+    X_test = X[-sampler,]
+    
+    # Creates the bool matrix of chosen columns
+    RandomFeatureSelectionList <- list()
+    for (i in 1:ITERS)
+    {
+      RandomFeatureSelectionList[[i]] = sample(c(rep(0,prop0),rep(1,prop1)), replace=TRUE, 
+                                               size=COLS)
+    }
+    # Converts The booleans of the matrix into a list of columns
+    
+    for (i in 1:length(RandomFeatureSelectionList))
+    {
+      col_list = c()
+      for(j in 1:COLS)
+      {
+        if(RandomFeatureSelectionList[[i]][j] == 1)
+        {
+          col_list = append(col_list,j)
+        }
+      }
+      sim_inst = try(Simulation_Instance(y_train, X_train, y_test, X_test, col_list), 
+                     silent = TRUE)
+      if (length(sim_inst) == 5)
+      {
+        for (j in 1:5)
+        {
+          
+          table[((cv-1)*ITERS) + i,j] = sim_inst[[j]]
+          
+        }
+      }
+    }
+
+  }
+  
+  return(table)
+}
+
+# Draws a histogram and the ascosiated normal distribution
+Hist_Norm <- function(d, breaks = 20, x_lab = "x_lab", y_lab = "y_lab", main = "main"){
+  full = d[!is.na(d)]
+  print(min(full))
+  h <- hist(full, breaks = breaks, x_lab = "x_lab", y_lab = "y_lab", main = "main")
+  xfit <- seq(min(full), max(full), length = 40) 
+  yfit <- dnorm(xfit, mean = mean(full), sd = sd(full))
+  yfit <- yfit * diff(h$mids[1:2]) * length(full)
+  lines(xfit, yfit, col = "black", lwd = 2)
+  
+}
+
+
+# Set the seed for ease of replication:
+set.seed(20776408)
+
+# Models with equal chance of including or excluding columns, across the different 
+# domains
+domain1 = Run_Simulation(1000,y,pollution_chemicals, CV = 5)
+domain2 = Run_Simulation(1000,y,pollution_outdoors, CV = 5)
+domain3 = Run_Simulation(1000,y,pollution_lifestyles, CV = 5)
+domain4 = Run_Simulation(1000,y,pollution_others, CV = 5)
+domain12 = Run_Simulation(1000,y,cbind(pollution_chemicals, pollution_outdoors), 
+                          CV = 5)
+domain13 = Run_Simulation(1000,y,cbind(pollution_chemicals, pollution_lifestyles), 
+                          CV = 5)
+domain14 = Run_Simulation(1000,y,cbind(pollution_chemicals, pollution_others), 
+                          CV = 5)
+domain23 = Run_Simulation(1000,y,cbind(pollution_outdoors, pollution_lifestyles), 
+                          CV = 5)
+domain24 = Run_Simulation(1000,y,cbind(pollution_outdoors, pollution_others), 
+                          CV = 5)
+domain34 = Run_Simulation(1000,y,cbind(pollution_lifestyles, pollution_others), 
+                          CV = 5)
+domain123 = Run_Simulation(1000,y,cbind(pollution_chemicals, pollution_outdoors, 
+                                        pollution_lifestyles), CV = 5)
+domain124 = Run_Simulation(1000,y,cbind(pollution_chemicals, pollution_outdoors, 
+                                        pollution_others), CV = 5)
+domain134 = Run_Simulation(1000,y,cbind(pollution_chemicals, pollution_lifestyles, 
+                                        pollution_others), CV = 5)
+domain234 = Run_Simulation(1000,y,cbind(pollution_outdoors, pollution_lifestyles, 
+                                        pollution_others), CV = 5)
+domain1234 = Run_Simulation(1000,y,cbind(pollution_chemicals, pollution_outdoors, 
+                                         pollution_lifestyles, pollution_others),
+                            CV = 5)
+
+# Models with a higher chance of excluding columns, across the different domains
+low_col_domain1 = Run_Simulation(1000,y,pollution_chemicals, CV = 5, prop0 = 2)
+low_col_domain2 = Run_Simulation(1000,y,pollution_outdoors, CV = 5, prop0 = 2)
+low_col_domain3 = Run_Simulation(1000,y,pollution_lifestyles, CV = 5, prop0 = 2)
+low_col_domain4 = Run_Simulation(1000,y,pollution_others, CV = 5, prop0 = 2)
+low_col_domain12 = Run_Simulation(1000,y,cbind(pollution_chemicals, pollution_outdoors), 
+                                  CV = 5, prop0 = 2)
+low_col_domain13 = Run_Simulation(1000,y,cbind(pollution_chemicals, pollution_lifestyles), 
+                                  CV = 5, prop0 = 2)
+low_col_domain14 = Run_Simulation(1000,y,cbind(pollution_chemicals, pollution_others), 
+                                  CV = 5, prop0 = 2)
+low_col_domain23 = Run_Simulation(1000,y,cbind(pollution_outdoors, pollution_lifestyles), 
+                                  CV = 5, prop0 = 2)
+low_col_domain24 = Run_Simulation(1000,y,cbind(pollution_outdoors, pollution_others), 
+                                  CV = 5, prop0 = 2)
+low_col_domain34 = Run_Simulation(1000,y,cbind(pollution_lifestyles, pollution_others), 
+                                  CV = 5, prop0 = 2)
+low_col_domain123 = Run_Simulation(1000,y,cbind(pollution_chemicals, pollution_outdoors, 
+                                                pollution_lifestyles), CV = 5, prop0 = 2)
+low_col_domain124 = Run_Simulation(1000,y,cbind(pollution_chemicals, pollution_outdoors, 
+                                                pollution_others), CV = 5, prop0 = 2)
+low_col_domain134 = Run_Simulation(1000,y,cbind(pollution_chemicals, pollution_lifestyles, 
+                                                pollution_others), CV = 5, prop0 = 2)
+low_col_domain234 = Run_Simulation(1000,y,cbind(pollution_outdoors, pollution_lifestyles, 
+                                                pollution_others), CV = 5, prop0 = 2)
+low_col_domain1234 = Run_Simulation(1000,y,cbind(pollution_chemicals, pollution_outdoors, 
+                                                 pollution_lifestyles, pollution_others), 
+                                    CV = 5, prop0 = 2)
+
+# Models with a higher chance of including columns, across the different domains
+high_col_domain1 = Run_Simulation(1000,y,pollution_chemicals, CV = 5, prop1 = 2)
+high_col_domain2 = Run_Simulation(1000,y,pollution_outdoors, CV = 5, prop1 = 2)
+high_col_domain3 = Run_Simulation(1000,y,pollution_lifestyles, CV = 5, prop1 = 2)
+high_col_domain4 = Run_Simulation(1000,y,pollution_others, CV = 5, prop1 = 2)
+high_col_domain12 = Run_Simulation(1000,y,cbind(pollution_chemicals, pollution_outdoors),
+                                   CV = 5, prop1 = 2)
+high_col_domain13 = Run_Simulation(1000,y,cbind(pollution_chemicals, pollution_lifestyles),
+                                   CV = 5, prop1 = 2)
+high_col_domain14 = Run_Simulation(1000,y,cbind(pollution_chemicals, pollution_others),
+                                   CV = 5, prop1 = 2)
+high_col_domain23 = Run_Simulation(1000,y,cbind(pollution_outdoors, pollution_lifestyles),
+                                   CV = 5, prop1 = 2)
+high_col_domain24 = Run_Simulation(1000,y,cbind(pollution_outdoors, pollution_others),
+                                   CV = 5, prop1 = 2)
+high_col_domain34 = Run_Simulation(1000,y,cbind(pollution_lifestyles, pollution_others),
+                                   CV = 5, prop1 = 2)
+high_col_domain123 = Run_Simulation(1000,y,cbind(pollution_chemicals, pollution_outdoors,
+                                                 pollution_lifestyles), CV = 5, prop1 = 2)
+high_col_domain124 = Run_Simulation(1000,y,cbind(pollution_chemicals, pollution_outdoors,
+                                                 pollution_others), CV = 5, prop1 = 2)
+high_col_domain134 = Run_Simulation(1000,y,cbind(pollution_chemicals, pollution_lifestyles,
+                                                 pollution_others), CV = 5, prop1 = 2)
+high_col_domain234 = Run_Simulation(1000,y,cbind(pollution_outdoors, pollution_lifestyles,
+                                                 pollution_others), CV = 5, prop1 = 2)
+high_col_domain1234 = Run_Simulation(1000,y,cbind(pollution_chemicals, pollution_outdoors,
+                                                  pollution_lifestyles, pollution_others),
+                                     CV = 5, prop1 = 2)
+
+
+#combining the observations across the column inclusion probabilities
+tot_domain1 = unique(rbind(low_col_domain1, domain1, high_col_domain1))
+tot_domain2 = unique(rbind(low_col_domain2, domain2, high_col_domain2))
+tot_domain3 = unique(rbind(low_col_domain3, domain3, high_col_domain3))
+tot_domain4 = unique(rbind(low_col_domain4, domain4, high_col_domain4))
+tot_domain12 = unique(rbind(low_col_domain12, domain12, high_col_domain12))
+tot_domain13 = unique(rbind(low_col_domain13, domain13, high_col_domain13))
+tot_domain14 = unique(rbind(low_col_domain14, domain14, high_col_domain14))
+tot_domain23 = unique(rbind(low_col_domain23, domain23, high_col_domain23))
+tot_domain24 = unique(rbind(low_col_domain24, domain24, high_col_domain24))
+tot_domain34 = unique(rbind(low_col_domain34, domain34, high_col_domain34))
+tot_domain123 = unique(rbind(low_col_domain123, domain123, high_col_domain123))
+tot_domain124 = unique(rbind(low_col_domain124, domain124, high_col_domain124))
+tot_domain134 = unique(rbind(low_col_domain134, domain134, high_col_domain134))
+tot_domain234 = unique(rbind(low_col_domain234, domain234, high_col_domain234))
+tot_domain1234 = unique(rbind(low_col_domain1234, domain1234, high_col_domain1234))
+
+
+
+#Calcluating mean and standard deviation of the MSPE differences observed above, and 
+#plotting the respective histograms.
+Hist_Norm(tot_domain1234$mspe_difference, 
+          xlab = "Original Model MSPE minus Outlier Removed Model MSPE", 
+          main = "MSPE Difference in models across all domains")
+mean(tot_domain1234$mspe_difference, na.rm = TRUE)
+sd(tot_domain1234$mspe_difference, na.rm = TRUE)
+
+Hist_Norm(tot_domain1$mspe_difference, 
+          xlab = "Original Model MSPE minus Outlier Removed Model MSPE", 
+          main = "MSPE Difference in models within the Chemicals Domain")
+mean(tot_domain1$mspe_difference, na.rm = TRUE)
+sd(tot_domain1$mspe_difference, na.rm = TRUE)
+Hist_Norm(tot_domain2$mspe_difference, 
+          xlab = "Original Model MSPE minus Outlier Removed Model MSPE",
+          main = "MSPE Difference in models Within the Outdoors Domain")
+mean(tot_domain2$mspe_difference, na.rm = TRUE)
+sd(tot_domain2$mspe_difference, na.rm = TRUE)
+Hist_Norm(tot_domain3$mspe_difference, 
+          xlab = "Original Model MSPE minus Outlier Removed Model MSPE", 
+          main = "MSPE Difference in models within the Lifestyle Domain")
+mean(tot_domain3$mspe_difference, na.rm = TRUE)
+sd(tot_domain3$mspe_difference, na.rm = TRUE)
+Hist_Norm(tot_domain4$mspe_difference, 
+          xlab = "Original Model MSPE minus Outlier Removed Model MSPE",
+          main = "MSPE Difference in models Within the Misc. Domain")
+mean(tot_domain4$mspe_difference, na.rm = TRUE)
+sd(tot_domain4$mspe_difference, na.rm = TRUE)
+```
+
+
