@@ -15,7 +15,8 @@ pollution_lifestyles <- pollution[c(6:17)] # lifestyles domain
 pollution_others <- pollution[c(74:80)] # covariates domain
 
 
-# A function for finding the DFFits outliers at a specific tolerance. Ploting the values is an included option.
+# A function for finding the DFFits outliers at a specific tolerance. Ploting the values is 
+# an included option.
 Get_DFFITS_Outliers <- function(M, tol = 2, to_plot = FALSE, ylab = "DFFITS")
 {
   D = dffits(M)
@@ -50,12 +51,14 @@ Simulation_Instance <- function(y_train, X_train, y_test, X_test, cols, plot_out
   X_train_rm_out = X_train[-M_Outliers,cols]
   y_train_rm_out = y_train[-M_Outliers]
   
-  M_Outliers_Removed = lm(y_train_rm_out~.,data =X_train_rm_out) # Remove the outliers from the training set and remake the model
+  # Remove the outliers from the training set and remake the model
+  M_Outliers_Removed = lm(y_train_rm_out~.,data =X_train_rm_out)
   
   mspe_1 = MSPE(y_test, X_test, M)
   mspe_2 = MSPE(y_test, X_test, M_Outliers_Removed) #Compare the MSPEs of the 2 models
   
-  return(list(length(cols),length(M_Outliers),mspe_1, mspe_2, mspe_1-mspe_2)) # Return information about the instance
+  # Return information about the instance
+  return(list(length(cols),length(M_Outliers),mspe_1, mspe_2, mspe_1-mspe_2))
   
 }
 
@@ -63,12 +66,14 @@ Simulation_Instance <- function(y_train, X_train, y_test, X_test, cols, plot_out
 Run_Simulation <- function(ITERS, y, X, CV = 1, tts = 0.6, prop0 = 1, prop1 = 1)
 {
   COLS = length(X) # number of columns
-  table = data.frame(features = rep(NA,ITERS*CV),num_outliers = rep(NA,ITERS*CV),mspe_original = rep(NA,ITERS*CV),
-                     mspe_no_outliers = rep(NA,ITERS*CV),mspe_difference = rep(NA,ITERS*CV))
+  table = data.frame(features = rep(NA,ITERS*CV),num_outliers = rep(NA,ITERS*CV),
+                     mspe_original = rep(NA,ITERS*CV),mspe_no_outliers = rep(NA,ITERS*CV),
+                     mspe_difference = rep(NA,ITERS*CV))
   
   for (cv in 1:CV)
   {
-    sampler = 1:(length(y) * tts) + (((length(y)*(1-tts) * (cv - 1)) / (CV - 1))) # different training splits used for cross-validation
+    # different training splits used for cross-validation
+    sampler = 1:(length(y) * tts) + (((length(y)*(1-tts) * (cv - 1)) / (CV - 1)))
     
     y_train = y[sampler]
     X_train = X[sampler,]
@@ -79,7 +84,8 @@ Run_Simulation <- function(ITERS, y, X, CV = 1, tts = 0.6, prop0 = 1, prop1 = 1)
     RandomFeatureSelectionList <- list()
     for (i in 1:ITERS)
     {
-      RandomFeatureSelectionList[[i]] = sample(c(rep(0,prop0),rep(1,prop1)), replace=TRUE, size=COLS)
+      RandomFeatureSelectionList[[i]] = sample(c(rep(0,prop0),rep(1,prop1)), replace=TRUE, 
+                                               size=COLS)
     }
     # Converts The booleans of the matrix into a list of columns
     
@@ -93,7 +99,8 @@ Run_Simulation <- function(ITERS, y, X, CV = 1, tts = 0.6, prop0 = 1, prop1 = 1)
           col_list = append(col_list,j)
         }
       }
-      sim_inst = try(Simulation_Instance(y_train, X_train, y_test, X_test, col_list), silent = TRUE)
+      sim_inst = try(Simulation_Instance(y_train, X_train, y_test, X_test, col_list), 
+                     silent = TRUE)
       if (length(sim_inst) == 5)
       {
         for (j in 1:5)
@@ -126,56 +133,93 @@ Hist_Norm <- function(d, breaks = 20, x_lab = "x_lab", y_lab = "y_lab", main = "
 # Set the seed for ease of replication:
 set.seed(20776408)
 
-# Models with equal chance of including or excluding columns, across the different domains
+# Models with equal chance of including or excluding columns, across the different 
+# domains
 domain1 = Run_Simulation(1000,y,pollution_chemicals, CV = 5)
 domain2 = Run_Simulation(1000,y,pollution_outdoors, CV = 5)
 domain3 = Run_Simulation(1000,y,pollution_lifestyles, CV = 5)
 domain4 = Run_Simulation(1000,y,pollution_others, CV = 5)
-domain12 = Run_Simulation(1000,y,cbind(pollution_chemicals, pollution_outdoors), CV = 5)
-domain13 = Run_Simulation(1000,y,cbind(pollution_chemicals, pollution_lifestyles), CV = 5)
-domain14 = Run_Simulation(1000,y,cbind(pollution_chemicals, pollution_others), CV = 5)
-domain23 = Run_Simulation(1000,y,cbind(pollution_outdoors, pollution_lifestyles), CV = 5)
-domain24 = Run_Simulation(1000,y,cbind(pollution_outdoors, pollution_others), CV = 5)
-domain34 = Run_Simulation(1000,y,cbind(pollution_lifestyles, pollution_others), CV = 5)
-domain123 = Run_Simulation(1000,y,cbind(pollution_chemicals, pollution_outdoors, pollution_lifestyles), CV = 5)
-domain124 = Run_Simulation(1000,y,cbind(pollution_chemicals, pollution_outdoors, pollution_others), CV = 5)
-domain134 = Run_Simulation(1000,y,cbind(pollution_chemicals, pollution_lifestyles, pollution_others), CV = 5)
-domain234 = Run_Simulation(1000,y,cbind(pollution_outdoors, pollution_lifestyles, pollution_others), CV = 5)
-domain1234 = Run_Simulation(1000,y,cbind(pollution_chemicals, pollution_outdoors, pollution_lifestyles, pollution_others), CV = 5)
+domain12 = Run_Simulation(1000,y,cbind(pollution_chemicals, pollution_outdoors), 
+                          CV = 5)
+domain13 = Run_Simulation(1000,y,cbind(pollution_chemicals, pollution_lifestyles), 
+                          CV = 5)
+domain14 = Run_Simulation(1000,y,cbind(pollution_chemicals, pollution_others), 
+                          CV = 5)
+domain23 = Run_Simulation(1000,y,cbind(pollution_outdoors, pollution_lifestyles), 
+                          CV = 5)
+domain24 = Run_Simulation(1000,y,cbind(pollution_outdoors, pollution_others), 
+                          CV = 5)
+domain34 = Run_Simulation(1000,y,cbind(pollution_lifestyles, pollution_others), 
+                          CV = 5)
+domain123 = Run_Simulation(1000,y,cbind(pollution_chemicals, pollution_outdoors, 
+                                        pollution_lifestyles), CV = 5)
+domain124 = Run_Simulation(1000,y,cbind(pollution_chemicals, pollution_outdoors, 
+                                        pollution_others), CV = 5)
+domain134 = Run_Simulation(1000,y,cbind(pollution_chemicals, pollution_lifestyles, 
+                                        pollution_others), CV = 5)
+domain234 = Run_Simulation(1000,y,cbind(pollution_outdoors, pollution_lifestyles, 
+                                        pollution_others), CV = 5)
+domain1234 = Run_Simulation(1000,y,cbind(pollution_chemicals, pollution_outdoors, 
+                                         pollution_lifestyles, pollution_others),
+                            CV = 5)
 
 # Models with a higher chance of excluding columns, across the different domains
 low_col_domain1 = Run_Simulation(1000,y,pollution_chemicals, CV = 5, prop0 = 2)
 low_col_domain2 = Run_Simulation(1000,y,pollution_outdoors, CV = 5, prop0 = 2)
 low_col_domain3 = Run_Simulation(1000,y,pollution_lifestyles, CV = 5, prop0 = 2)
 low_col_domain4 = Run_Simulation(1000,y,pollution_others, CV = 5, prop0 = 2)
-low_col_domain12 = Run_Simulation(1000,y,cbind(pollution_chemicals, pollution_outdoors), CV = 5, prop0 = 2)
-low_col_domain13 = Run_Simulation(1000,y,cbind(pollution_chemicals, pollution_lifestyles), CV = 5, prop0 = 2)
-low_col_domain14 = Run_Simulation(1000,y,cbind(pollution_chemicals, pollution_others), CV = 5, prop0 = 2)
-low_col_domain23 = Run_Simulation(1000,y,cbind(pollution_outdoors, pollution_lifestyles), CV = 5, prop0 = 2)
-low_col_domain24 = Run_Simulation(1000,y,cbind(pollution_outdoors, pollution_others), CV = 5, prop0 = 2)
-low_col_domain34 = Run_Simulation(1000,y,cbind(pollution_lifestyles, pollution_others), CV = 5, prop0 = 2)
-low_col_domain123 = Run_Simulation(1000,y,cbind(pollution_chemicals, pollution_outdoors, pollution_lifestyles), CV = 5, prop0 = 2)
-low_col_domain124 = Run_Simulation(1000,y,cbind(pollution_chemicals, pollution_outdoors, pollution_others), CV = 5, prop0 = 2)
-low_col_domain134 = Run_Simulation(1000,y,cbind(pollution_chemicals, pollution_lifestyles, pollution_others), CV = 5, prop0 = 2)
-low_col_domain234 = Run_Simulation(1000,y,cbind(pollution_outdoors, pollution_lifestyles, pollution_others), CV = 5, prop0 = 2)
-low_col_domain1234 = Run_Simulation(1000,y,cbind(pollution_chemicals, pollution_outdoors, pollution_lifestyles, pollution_others), CV = 5, prop0 = 2)
+low_col_domain12 = Run_Simulation(1000,y,cbind(pollution_chemicals, pollution_outdoors), 
+                                  CV = 5, prop0 = 2)
+low_col_domain13 = Run_Simulation(1000,y,cbind(pollution_chemicals, pollution_lifestyles), 
+                                  CV = 5, prop0 = 2)
+low_col_domain14 = Run_Simulation(1000,y,cbind(pollution_chemicals, pollution_others), 
+                                  CV = 5, prop0 = 2)
+low_col_domain23 = Run_Simulation(1000,y,cbind(pollution_outdoors, pollution_lifestyles), 
+                                  CV = 5, prop0 = 2)
+low_col_domain24 = Run_Simulation(1000,y,cbind(pollution_outdoors, pollution_others), 
+                                  CV = 5, prop0 = 2)
+low_col_domain34 = Run_Simulation(1000,y,cbind(pollution_lifestyles, pollution_others), 
+                                  CV = 5, prop0 = 2)
+low_col_domain123 = Run_Simulation(1000,y,cbind(pollution_chemicals, pollution_outdoors, 
+                                                pollution_lifestyles), CV = 5, prop0 = 2)
+low_col_domain124 = Run_Simulation(1000,y,cbind(pollution_chemicals, pollution_outdoors, 
+                                                pollution_others), CV = 5, prop0 = 2)
+low_col_domain134 = Run_Simulation(1000,y,cbind(pollution_chemicals, pollution_lifestyles, 
+                                                pollution_others), CV = 5, prop0 = 2)
+low_col_domain234 = Run_Simulation(1000,y,cbind(pollution_outdoors, pollution_lifestyles, 
+                                                pollution_others), CV = 5, prop0 = 2)
+low_col_domain1234 = Run_Simulation(1000,y,cbind(pollution_chemicals, pollution_outdoors, 
+                                                 pollution_lifestyles, pollution_others), 
+                                    CV = 5, prop0 = 2)
 
 # Models with a higher chance of including columns, across the different domains
 high_col_domain1 = Run_Simulation(1000,y,pollution_chemicals, CV = 5, prop1 = 2)
 high_col_domain2 = Run_Simulation(1000,y,pollution_outdoors, CV = 5, prop1 = 2)
 high_col_domain3 = Run_Simulation(1000,y,pollution_lifestyles, CV = 5, prop1 = 2)
 high_col_domain4 = Run_Simulation(1000,y,pollution_others, CV = 5, prop1 = 2)
-high_col_domain12 = Run_Simulation(1000,y,cbind(pollution_chemicals, pollution_outdoors), CV = 5, prop1 = 2)
-high_col_domain13 = Run_Simulation(1000,y,cbind(pollution_chemicals, pollution_lifestyles), CV = 5, prop1 = 2)
-high_col_domain14 = Run_Simulation(1000,y,cbind(pollution_chemicals, pollution_others), CV = 5, prop1 = 2)
-high_col_domain23 = Run_Simulation(1000,y,cbind(pollution_outdoors, pollution_lifestyles), CV = 5, prop1 = 2)
-high_col_domain24 = Run_Simulation(1000,y,cbind(pollution_outdoors, pollution_others), CV = 5, prop1 = 2)
-high_col_domain34 = Run_Simulation(1000,y,cbind(pollution_lifestyles, pollution_others), CV = 5, prop1 = 2)
-high_col_domain123 = Run_Simulation(1000,y,cbind(pollution_chemicals, pollution_outdoors, pollution_lifestyles), CV = 5, prop1 = 2)
-high_col_domain124 = Run_Simulation(1000,y,cbind(pollution_chemicals, pollution_outdoors, pollution_others), CV = 5, prop1 = 2)
-high_col_domain134 = Run_Simulation(1000,y,cbind(pollution_chemicals, pollution_lifestyles, pollution_others), CV = 5, prop1 = 2)
-high_col_domain234 = Run_Simulation(1000,y,cbind(pollution_outdoors, pollution_lifestyles, pollution_others), CV = 5, prop1 = 2)
-high_col_domain1234 = Run_Simulation(1000,y,cbind(pollution_chemicals, pollution_outdoors, pollution_lifestyles, pollution_others), CV = 5, prop1 = 2)
+high_col_domain12 = Run_Simulation(1000,y,cbind(pollution_chemicals, pollution_outdoors),
+                                   CV = 5, prop1 = 2)
+high_col_domain13 = Run_Simulation(1000,y,cbind(pollution_chemicals, pollution_lifestyles),
+                                   CV = 5, prop1 = 2)
+high_col_domain14 = Run_Simulation(1000,y,cbind(pollution_chemicals, pollution_others),
+                                   CV = 5, prop1 = 2)
+high_col_domain23 = Run_Simulation(1000,y,cbind(pollution_outdoors, pollution_lifestyles),
+                                   CV = 5, prop1 = 2)
+high_col_domain24 = Run_Simulation(1000,y,cbind(pollution_outdoors, pollution_others),
+                                   CV = 5, prop1 = 2)
+high_col_domain34 = Run_Simulation(1000,y,cbind(pollution_lifestyles, pollution_others),
+                                   CV = 5, prop1 = 2)
+high_col_domain123 = Run_Simulation(1000,y,cbind(pollution_chemicals, pollution_outdoors,
+                                                 pollution_lifestyles), CV = 5, prop1 = 2)
+high_col_domain124 = Run_Simulation(1000,y,cbind(pollution_chemicals, pollution_outdoors,
+                                                 pollution_others), CV = 5, prop1 = 2)
+high_col_domain134 = Run_Simulation(1000,y,cbind(pollution_chemicals, pollution_lifestyles,
+                                                 pollution_others), CV = 5, prop1 = 2)
+high_col_domain234 = Run_Simulation(1000,y,cbind(pollution_outdoors, pollution_lifestyles,
+                                                 pollution_others), CV = 5, prop1 = 2)
+high_col_domain1234 = Run_Simulation(1000,y,cbind(pollution_chemicals, pollution_outdoors,
+                                                  pollution_lifestyles, pollution_others),
+                                     CV = 5, prop1 = 2)
 
 
 #combining the observations across the column inclusion probabilities
@@ -197,20 +241,31 @@ tot_domain1234 = unique(rbind(low_col_domain1234, domain1234, high_col_domain123
 
 
 
-#Calcluating mean and standard deviation of the MSPE differences observed above, and plotting the respective histograms.
-Hist_Norm(tot_domain1234$mspe_difference, xlab = "Original Model MSPE minus Outlier Removed Model MSPE", main = "MSPE Difference in models across all domains")
+#Calcluating mean and standard deviation of the MSPE differences observed above, and 
+#plotting the respective histograms.
+Hist_Norm(tot_domain1234$mspe_difference, 
+          xlab = "Original Model MSPE minus Outlier Removed Model MSPE", 
+          main = "MSPE Difference in models across all domains")
 mean(tot_domain1234$mspe_difference, na.rm = TRUE)
 sd(tot_domain1234$mspe_difference, na.rm = TRUE)
 
-Hist_Norm(tot_domain1$mspe_difference, xlab = "Original Model MSPE minus Outlier Removed Model MSPE", main = "MSPE Difference in models within the Chemicals Domain")
+Hist_Norm(tot_domain1$mspe_difference, 
+          xlab = "Original Model MSPE minus Outlier Removed Model MSPE", 
+          main = "MSPE Difference in models within the Chemicals Domain")
 mean(tot_domain1$mspe_difference, na.rm = TRUE)
 sd(tot_domain1$mspe_difference, na.rm = TRUE)
-Hist_Norm(tot_domain2$mspe_difference, xlab = "Original Model MSPE minus Outlier Removed Model MSPE", main = "MSPE Difference in models Within the Outdoors Domain")
+Hist_Norm(tot_domain2$mspe_difference, 
+          xlab = "Original Model MSPE minus Outlier Removed Model MSPE",
+          main = "MSPE Difference in models Within the Outdoors Domain")
 mean(tot_domain2$mspe_difference, na.rm = TRUE)
 sd(tot_domain2$mspe_difference, na.rm = TRUE)
-Hist_Norm(tot_domain3$mspe_difference, xlab = "Original Model MSPE minus Outlier Removed Model MSPE", main = "MSPE Difference in models within the Lifestyle Domain")
+Hist_Norm(tot_domain3$mspe_difference, 
+          xlab = "Original Model MSPE minus Outlier Removed Model MSPE", 
+          main = "MSPE Difference in models within the Lifestyle Domain")
 mean(tot_domain3$mspe_difference, na.rm = TRUE)
 sd(tot_domain3$mspe_difference, na.rm = TRUE)
-Hist_Norm(tot_domain4$mspe_difference, xlab = "Original Model MSPE minus Outlier Removed Model MSPE", main = "MSPE Difference in models Within the Misc. Domain")
+Hist_Norm(tot_domain4$mspe_difference, 
+          xlab = "Original Model MSPE minus Outlier Removed Model MSPE",
+          main = "MSPE Difference in models Within the Misc. Domain")
 mean(tot_domain4$mspe_difference, na.rm = TRUE)
 sd(tot_domain4$mspe_difference, na.rm = TRUE)
