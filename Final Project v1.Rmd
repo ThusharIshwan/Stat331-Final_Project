@@ -68,6 +68,19 @@ We chose DFFITS as our standard to pick out outliers because it incorporates inf
 
 For the full model in our selection methods, we considered both including the interactions and excluding the interactions to examine whether important interactions affect our results significantly.\
 
+#### Simulation
+During the process of selecting certain methods and comparing the models created before and after removing outliers, there are occasions in which we see an increase in MSPE after removing outliers and at other times we see a decrease. To verify which happens more often, we create a simulation to test many randomly selected models to identify a trend. We split the data into 4 sections to describe the effect of removing the outliers in each: chemicals, outdoors, lifestyles and others.
+The simulation runs as follows: 
+1.	Split the data into a training and a test set. The way the simulation is presented, the training sets that are used are [1:600], [101:700], [201:800], [301:900], [401:1000]. In each case, the other observations are used as the test case. This form of cross validation ensures that the results are not restricted to just removing the outliers in one of the sets.
+2.	Generate a random set of 1s or 0s. Each one indicates that the column should be included in the model and the zero means not. We can also control the probability that a column is chosen or not. We generate as many of these sets of 1s and 0s as we want models in our sample. From these sets, we generate a list of vectors indicating which parameters to include in each model. ie. If the vector c(1,3,7) appears in the list, then one of the models in the sample will be the model created by including the 1st, 3rd, and 7th covariate as features (all models in the sample have the same dependent variable.) 
+3.	For each of the models created by the sample above, we perform the method described previously, noting the DFFITS outliers and removing them to create a second model. We record the number of features, number of outliers, the MSPEs of the model against the current test set and the difference between the MSPEs (model with outliers – model with outliers removed).
+
+#### Results of the simulation. 
+Running the simulation, we get a table of observations of different sets of covariates and the MSPE of both the normal model and the model with the outlier removed. If taking out the outliers from the training data set would improve the quality of the model, we would expect most of the observations to satisfy (mspe_original > mspe_no_outliers) in other words the difference between the original and the removed outlier version to be positive however that is not the case. The results give us a normal distribution. The sample mean of the 15000 observations gathered in the simulation is -3130.807 with a standard deviation of 5072.353. The test statistic that we observe in a hypothesis test that true mean is greater than 0 is -75.59489, low enough for R to describe that probability as 0.
+However if we dissect the columns into the domains chemicals, outdoors, lifestyles and others, we notice that the chemicals and the miscellaneous domains contribute the most to the negative values while the other domains boast at least an expected decrease in MSPE after removing the outliers. In addition, combining the domains seems to combine the net expected outcome of removing the outliers.
+
+
+
 
 ### Analysis
 Minimal Model: lm(e3_bw ~ 1, data = train.set)
